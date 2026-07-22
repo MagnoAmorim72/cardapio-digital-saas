@@ -1,0 +1,34 @@
+/*
+ * Esse arquivo documenta a estrutura de variáveis de tema usada pelo
+ * sistema. As variáveis reais são injetadas em runtime (ver
+ * src/contexts/TenantContext.tsx -> applyTenantTheme), lendo a coluna
+ * `theme` da tabela `tenants`. Mantido aqui como referência para quem for
+ * customizar temas predefinidos por segmento (hamburgueria, pizzaria, etc).
+ *
+ * Formato: "R G B" (sem vírgulas), compatível com a sintaxe
+ * rgb(var(--x) / <alpha-value>) usada no tailwind.config.js.
+ */
+
+/* Exemplo — Hamburgueria (tangerine vibrante) */
+.theme-preset-burger {
+  --brand-primary: 255 90 31;
+  --brand-secondary: 255 197 61;
+}
+
+/* Exemplo — Pizzaria (vermelho tomate + verde manjericão) */
+.theme-preset-pizza {
+  --brand-primary: 214 62 46;
+  --brand-secondary: 105 141 82;
+}
+
+/* Exemplo — Açaiteria (roxo açaí + verde-limão) */
+.theme-preset-acai {
+  --brand-primary: 122 63 158;
+  --brand-secondary: 176 213 66;
+}
+
+/* Exemplo — Cafeteria (marrom torrado + creme) */
+.theme-preset-coffee {
+  --brand-primary: 111 78 55;
+  --brand-secondary: 214 186 140;
+}
