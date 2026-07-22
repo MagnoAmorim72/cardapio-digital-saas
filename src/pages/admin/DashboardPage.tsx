@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ShoppingCart, DollarSign, CalendarDays, TrendingUp } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { useTenant } from '@/hooks/useTenant';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { getDashboardStats, type DashboardStats } from '@/services/orderService';
 import { formatCurrency } from '@/utils/formatCurrency';
 
@@ -10,17 +11,33 @@ export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     if (!tenant) return;
     getDashboardStats(tenant.id)
       .then(setStats)
       .finally(() => setLoading(false));
-  }, [tenant?.id]);
+  }, [tenant]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  // Assim que um pedido novo chega no banco, as estatísticas são recarregadas
+  // automaticamente — sem precisar dar F5 no painel.
+  useRealtimeOrders(tenant?.id, loadStats);
 
   return (
     <div>
-      <h1 className="mb-1 font-display text-2xl font-bold text-ink">Dashboard</h1>
-      <p className="mb-6 text-sm text-ink-muted">Visão geral do seu estabelecimento.</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="mb-1 font-display text-2xl font-bold text-ink">Dashboard</h1>
+          <p className="text-sm text-ink-muted">Visão geral do seu estabelecimento.</p>
+        </div>
+        <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-500">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          Atualização automática
+        </span>
+      </div>
 
       {loading || !stats ? (
         <p className="text-sm text-ink-muted">Carregando estatísticas...</p>

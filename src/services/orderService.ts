@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Order, OrderStatus } from '@/types';
+import type { Order, OrderItemSnapshot, OrderStatus } from '@/types';
 
 export async function createOrder(
   payload: Omit<Order, 'id' | 'created_at' | 'status'>
@@ -56,7 +56,7 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const [todayRes, monthRes, productsRes] = await Promise.all([
+  const [todayRes, monthRes, allOrdersRes] = await Promise.all([
     supabase
       .from('orders')
       .select('total')
@@ -67,23 +67,32 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
       .select('total')
       .eq('tenant_id', tenantId)
       .gte('created_at', startOfMonth.toISOString()),
-    supabase
-      .from('products')
-      .select('name, sold_count')
-      .eq('tenant_id', tenantId)
-      .order('sold_count', { ascending: false })
-      .limit(5),
+    // "Mais vendidos" é calculado direto dos itens de cada pedido (fonte de
+    // verdade), em vez de um contador separado em products.sold_count — isso
+    // evita o contador ficar desatualizado e já reflete todo o histórico.
+    supabase.from('orders').select('items').eq('tenant_id', tenantId),
   ]);
 
   if (todayRes.error) throw todayRes.error;
   if (monthRes.error) throw monthRes.error;
-  if (productsRes.error) throw productsRes.error;
+  if (allOrdersRes.error) throw allOrdersRes.error;
 
   const ordersToday = todayRes.data.length;
   const revenueToday = todayRes.data.reduce((sum, o) => sum + Number(o.total), 0);
   const ordersThisMonth = monthRes.data.length;
   const revenueThisMonth = monthRes.data.reduce((sum, o) => sum + Number(o.total), 0);
-  const topProducts = productsRes.data.map((p) => ({ name: p.name, count: p.sold_count }));
+
+  const soldByProduct = new Map<string, number>();
+  for (const order of allOrdersRes.data) {
+    const items = (order.items ?? []) as OrderItemSnapshot[];
+    for (const item of items) {
+      soldByProduct.set(item.name, (soldByProduct.get(item.name) ?? 0) + item.quantity);
+    }
+  }
+  const topProducts = Array.from(soldByProduct.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
   return { ordersToday, revenueToday, ordersThisMonth, revenueThisMonth, topProducts };
 }

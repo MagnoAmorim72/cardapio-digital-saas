@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTenant } from '@/hooks/useTenant';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { DataTable } from '@/components/admin/DataTable';
 import { listOrders, updateOrderStatus } from '@/services/orderService';
 import { formatCurrency } from '@/utils/formatCurrency';
@@ -19,26 +20,38 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function reload() {
-    if (!tenant) return;
-    setLoading(true);
-    try {
-      setOrders(await listOrders(tenant.id));
-    } finally {
-      setLoading(false);
-    }
-  }
+  const reload = useCallback(
+    async (options?: { showSpinner?: boolean }) => {
+      if (!tenant) return;
+      if (options?.showSpinner) setLoading(true);
+      try {
+        setOrders(await listOrders(tenant.id));
+      } finally {
+        if (options?.showSpinner) setLoading(false);
+      }
+    },
+    [tenant]
+  );
 
   useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id]);
+    reload({ showSpinner: true });
+  }, [reload]);
+
+  // Novos pedidos entram na lista automaticamente, sem F5 (recarrega em
+  // segundo plano, sem piscar o spinner de carregamento).
+  useRealtimeOrders(tenant?.id, () => reload());
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-ink">Pedidos</h1>
-        <p className="text-sm text-ink-muted">Acompanhe os pedidos enviados via WhatsApp.</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-ink">Pedidos</h1>
+          <p className="text-sm text-ink-muted">Acompanhe os pedidos enviados via WhatsApp.</p>
+        </div>
+        <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-500">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          Atualização automática
+        </span>
       </div>
 
       {loading ? (
@@ -61,7 +74,7 @@ export function OrdersPage() {
               render: (o) => (
                 <select
                   value={o.status}
-                  onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus).then(reload)}
+                  onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus).then(() => reload())}
                   className="rounded-lg border border-ink/15 bg-surface px-2 py-1 text-xs"
                 >
                   {Object.entries(STATUS_LABELS).map(([value, label]) => (
