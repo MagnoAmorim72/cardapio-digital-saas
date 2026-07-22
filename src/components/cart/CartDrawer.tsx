@@ -28,30 +28,51 @@ export function CartDrawer() {
     setSubmitting(true);
     try {
       const message = buildOrderMessage({ tenant, items, coupon, customerName });
+      const waLink = tenant.whatsapp_number ? buildWhatsAppLink(tenant.whatsapp_number, message) : null;
 
-      // Registra o pedido no banco para aparecer nas estatísticas do admin.
-      await createOrder({
-        tenant_id: tenant.id,
-        customer_name: customerName || null,
-        customer_phone: null,
-        items: items.map((i) => ({
-          product_id: i.product.id,
-          name: i.product.name,
-          quantity: i.quantity,
-          unit_price: i.product.promo_price ?? i.product.price,
-          notes: i.notes || undefined,
-        })),
-        coupon_code: coupon?.code ?? null,
-        subtotal,
-        discount,
-        delivery_fee: deliveryFee,
-        total,
-        notes: null,
-      });
+      // Celulares tratam window.open('_blank') como pop-up e costumam bloquear
+      // silenciosamente, sem nenhum aviso visível. Em telas pequenas, navegamos
+      // a própria aba para o link — o sistema do celular reconhece o wa.me e
+      // abre o app do WhatsApp diretamente, sem passar por bloqueio de pop-up.
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-      if (tenant.whatsapp_number) {
-        window.open(buildWhatsAppLink(tenant.whatsapp_number, message), '_blank');
+      // No desktop, abrimos o WhatsApp AGORA, ainda dentro do clique do usuário.
+      // Se isso vier depois de um "await", o navegador bloqueia o popup.
+      if (waLink && !isMobile) {
+        window.open(waLink, '_blank');
       }
+
+      // Registrar o pedido não deve impedir o envio pelo WhatsApp caso falhe
+      // (ex: instabilidade momentânea de rede) — por isso tem seu próprio try/catch.
+      try {
+        await createOrder({
+          tenant_id: tenant.id,
+          customer_name: customerName || null,
+          customer_phone: null,
+          items: items.map((i) => ({
+            product_id: i.product.id,
+            name: i.product.name,
+            quantity: i.quantity,
+            unit_price: i.product.promo_price ?? i.product.price,
+            notes: i.notes || undefined,
+          })),
+          coupon_code: coupon?.code ?? null,
+          subtotal,
+          discount,
+          delivery_fee: deliveryFee,
+          total,
+          notes: null,
+        });
+      } catch (err) {
+        console.error('Falha ao registrar o pedido no painel (o pedido ainda foi enviado por WhatsApp):', err);
+      }
+
+      // No celular, navegamos só depois do await acima — diferente do
+      // window.open, a navegação da própria aba não é bloqueada por isso.
+      if (waLink && isMobile) {
+        window.location.href = waLink;
+      }
+
       clearCart();
       closeCart();
     } finally {
