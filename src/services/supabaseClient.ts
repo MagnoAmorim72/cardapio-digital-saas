@@ -15,4 +15,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
   },
+  global: {
+    // keepalive garante que a requisição termine de ser enviada mesmo que a
+    // página seja trocada logo em seguida (ex: checkout no celular, que
+    // navega para o WhatsApp assim que o pedido é salvo — sem isso, alguns
+    // navegadores mobile cortam a requisição no meio do caminho).
+    fetch: (input, init) => fetch(input, { ...init, keepalive: true }),
+  },
 });
