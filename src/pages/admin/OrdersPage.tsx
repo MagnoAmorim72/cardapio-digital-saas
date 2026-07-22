@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { useTenant } from '@/hooks/useTenant';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { DataTable } from '@/components/admin/DataTable';
@@ -14,6 +15,15 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   completed: 'Concluído',
   cancelled: 'Cancelado',
 };
+
+/** O endereço e o link do mapa são salvos juntos em `notes`, separados por " | ". */
+function parseDeliveryNotes(notes: string | null): { address: string | null; mapsLink: string | null } {
+  if (!notes) return { address: null, mapsLink: null };
+  const parts = notes.split(' | ').map((p) => p.trim());
+  const mapsLink = parts.find((p) => p.startsWith('http')) ?? null;
+  const address = parts.find((p) => !p.startsWith('http')) ?? null;
+  return { address, mapsLink };
+}
 
 export function OrdersPage() {
   const { tenant } = useTenant();
@@ -67,6 +77,28 @@ export function OrdersPage() {
               render: (o) => new Date(o.created_at).toLocaleString('pt-BR'),
             },
             { header: 'Cliente', render: (o) => o.customer_name ?? '—' },
+            {
+              header: 'Entrega',
+              render: (o) => {
+                const { address, mapsLink } = parseDeliveryNotes(o.notes);
+                if (!address && !mapsLink) return <span className="text-ink-muted">—</span>;
+                return (
+                  <div className="flex max-w-[220px] flex-col gap-0.5">
+                    {address && <span className="line-clamp-2 text-xs text-ink">{address}</span>}
+                    {mapsLink && (
+                      <a
+                        href={mapsLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
+                      >
+                        <MapPin className="h-3 w-3" /> Ver no mapa
+                      </a>
+                    )}
+                  </div>
+                );
+              },
+            },
             { header: 'Itens', render: (o) => `${o.items.length} item(ns)` },
             { header: 'Total', render: (o) => <span className="font-mono">{formatCurrency(o.total)}</span> },
             {

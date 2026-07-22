@@ -6,6 +6,8 @@ interface BuildOrderMessageParams {
   items: CartItem[];
   coupon: AppliedCoupon | null;
   customerName: string;
+  deliveryAddress?: string;
+  mapsLink?: string | null;
 }
 
 function itemLineTotal(item: CartItem): number {
@@ -29,6 +31,8 @@ export function buildOrderMessage({
   items,
   coupon,
   customerName,
+  deliveryAddress,
+  mapsLink,
 }: BuildOrderMessageParams): string {
   const subtotal = calcSubtotal(items);
   const discount = calcDiscount(subtotal, coupon);
@@ -39,6 +43,14 @@ export function buildOrderMessage({
   lines.push(`*Novo pedido — ${tenant.name}*`);
   lines.push('');
   if (customerName) lines.push(`Cliente: ${customerName}`);
+
+  if (deliveryAddress?.trim() || mapsLink) {
+    lines.push('');
+    lines.push('*Endereço de entrega:*');
+    if (deliveryAddress?.trim()) lines.push(deliveryAddress.trim());
+    if (mapsLink) lines.push(`📍 Localização: ${mapsLink}`);
+  }
+
   lines.push('');
   lines.push('*Itens:*');
 

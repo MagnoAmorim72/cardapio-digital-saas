@@ -7,6 +7,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { CartItemRow } from './CartItemRow';
 import { CouponInput } from './CouponInput';
 import { PixCheckout } from './PixCheckout';
+import { DeliveryAddressInput } from './DeliveryAddressInput';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/utils/formatCurrency';
@@ -19,6 +20,8 @@ export function CartDrawer() {
     items, isOpen, closeCart, subtotal, discount, deliveryFee, total, coupon, clearCart,
   } = useCart();
   const [customerName, setCustomerName] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [mapsLink, setMapsLink] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!tenant) return null;
@@ -27,7 +30,14 @@ export function CartDrawer() {
     if (!tenant || items.length === 0) return;
     setSubmitting(true);
     try {
-      const message = buildOrderMessage({ tenant, items, coupon, customerName });
+      const message = buildOrderMessage({
+        tenant,
+        items,
+        coupon,
+        customerName,
+        deliveryAddress,
+        mapsLink,
+      });
       const waLink = tenant.whatsapp_number ? buildWhatsAppLink(tenant.whatsapp_number, message) : null;
 
       // Celulares tratam window.open('_blank') como pop-up e costumam bloquear
@@ -61,7 +71,7 @@ export function CartDrawer() {
           discount,
           delivery_fee: deliveryFee,
           total,
-          notes: null,
+          notes: [deliveryAddress.trim(), mapsLink].filter(Boolean).join(' | ') || null,
         });
       } catch (err) {
         console.error('Falha ao registrar o pedido no painel (o pedido ainda foi enviado por WhatsApp):', err);
@@ -74,6 +84,8 @@ export function CartDrawer() {
       }
 
       clearCart();
+      setDeliveryAddress('');
+      setMapsLink(null);
       closeCart();
     } finally {
       setSubmitting(false);
@@ -130,6 +142,12 @@ export function CartDrawer() {
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Como podemos te chamar?"
                   className="mb-3"
+                />
+
+                <DeliveryAddressInput
+                  address={deliveryAddress}
+                  onAddressChange={setDeliveryAddress}
+                  onLocationCaptured={setMapsLink}
                 />
 
                 <div className="mb-4 space-y-1 text-sm">
