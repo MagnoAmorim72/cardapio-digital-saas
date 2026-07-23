@@ -76,7 +76,11 @@ export function CartDrawer() {
       } catch (err) {
         console.error('Falha ao registrar o pedido no painel (o pedido ainda foi enviado por WhatsApp):', err);
         // DIAGNÓSTICO TEMPORÁRIO — remover depois de identificar a causa raiz.
-        alert('[Diagnóstico] Falha ao salvar pedido: ' + (err instanceof Error ? err.message : String(err)));
+        const details =
+          (err as { message?: string })?.message ||
+          (err as { error_description?: string })?.error_description ||
+          JSON.stringify(err, Object.getOwnPropertyNames(err ?? {}));
+        alert('[Diagnóstico] Falha ao salvar pedido: ' + details);
       }
 
       // No celular, navegamos só depois do await acima — diferente do
