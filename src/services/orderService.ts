@@ -1,17 +1,14 @@
 import { supabase } from './supabaseClient';
 import type { Order, OrderItemSnapshot, OrderStatus } from '@/types';
 
-export async function createOrder(
-  payload: Omit<Order, 'id' | 'created_at' | 'status'>
-): Promise<Order> {
-  const { data, error } = await supabase
-    .from('orders')
-    .insert({ ...payload, status: 'pending' })
-    .select()
-    .single();
-
+export async function createOrder(payload: Omit<Order, 'id' | 'created_at' | 'status'>): Promise<void> {
+  // Sem .select().single(): o carrinho não precisa ler o pedido de volta,
+  // só criá-lo. Pedir a linha de volta ("Prefer: return=representation")
+  // exigiria também permissão de LEITURA sobre pedidos — que é restrita ao
+  // admin do estabelecimento — e travaria a criação para clientes anônimos
+  // (o caso normal de um cliente comprando pelo cardápio).
+  const { error } = await supabase.from('orders').insert({ ...payload, status: 'pending' });
   if (error) throw error;
-  return data as Order;
 }
 
 export async function listOrders(
