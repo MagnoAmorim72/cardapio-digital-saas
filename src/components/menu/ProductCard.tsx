@@ -10,11 +10,11 @@ interface ProductCardProps {
   product: Product;
 }
 
-/**
- * Card de produto, estilo retrô: contorno grosso + sombra dura com
- * deslocamento sólido (assinatura visual do tema). Produtos em promoção
- * ganham um selo circular sobre a foto, como uma etiqueta de "oferta".
- */
+/** Calcula o percentual de desconto para o selo de promoção. */
+function discountPercent(price: number, promoPrice: number): number {
+  return Math.round((1 - promoPrice / price) * 100);
+}
+
 export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const hasPromo = product.promo_price != null;
@@ -25,10 +25,10 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
       <motion.button
         type="button"
         onClick={() => setIsOpen(true)}
-        whileHover={{ y: -2 }}
+        whileHover={{ y: -3 }}
         whileTap={{ scale: 0.98 }}
         aria-label={`Ver detalhes de ${product.name}`}
-        className="group flex flex-col overflow-hidden rounded-card border-2 border-ink/10 bg-surface-raised text-left shadow-hard-sm transition-shadow hover:border-ink/20 disabled:opacity-60"
+        className="group flex flex-col overflow-hidden rounded-card bg-surface-raised text-left shadow-card transition-shadow duration-200 hover:shadow-elevated disabled:opacity-60"
         disabled={!product.is_available}
       >
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface">
@@ -51,30 +51,27 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               </span>
             </div>
           )}
-          {product.tags.length > 0 && (
-            <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
-              {product.tags.slice(0, 2).map((tag) => (
-                <TagBadge key={tag} tag={tag} />
-              ))}
-            </div>
-          )}
-          {hasPromo && (
-            <div className="absolute -bottom-4 -right-3 flex h-16 w-16 rotate-6 flex-col items-center justify-center rounded-full border-2 border-ink bg-brand-primary text-center leading-none text-white shadow-hard-sm">
-              <span className="font-mono text-[13px] font-bold">{formatCurrency(displayPrice)}</span>
-              <span className="text-[8px] font-bold uppercase tracking-wide">Só hoje</span>
-            </div>
-          )}
+          <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
+            {hasPromo && (
+              <span className="rounded-full bg-brand-primary px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                -{discountPercent(product.price, product.promo_price!)}%
+              </span>
+            )}
+            {product.tags.slice(0, hasPromo ? 1 : 2).map((tag) => (
+              <TagBadge key={tag} tag={tag} />
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col gap-1.5 p-3.5">
-          <h3 className="font-display text-[16px] font-semibold leading-snug text-ink line-clamp-1">
+          <h3 className="font-display text-[15px] font-semibold leading-snug text-ink line-clamp-1">
             {product.name}
           </h3>
           {product.description && (
             <p className="text-xs text-ink-muted line-clamp-2">{product.description}</p>
           )}
 
-          <div className="mt-2 flex items-end justify-between border-t-2 border-dashed border-ink/15 pt-2.5">
+          <div className="mt-2 flex items-end justify-between border-t border-ink/8 pt-2.5">
             <div className="flex flex-col">
               {hasPromo && (
                 <span className="text-xs text-ink-muted line-through">
@@ -91,7 +88,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                   <Clock className="h-3 w-3" /> {product.prep_time_minutes}min
                 </span>
               )}
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-ink bg-brand-primary text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white shadow-sm transition-transform group-hover:scale-110">
                 <Plus className="h-4 w-4" />
               </span>
             </div>

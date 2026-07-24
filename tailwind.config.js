@@ -22,7 +22,7 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Fredoka"', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'sans-serif'],
         body: ['"Inter"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
@@ -31,10 +31,9 @@ export default {
       },
       boxShadow: {
         card: '0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(0,0,0,0.12)',
-        // "Sombra dura" com deslocamento sólido — assinatura visual retrô,
-        // usada nos cards de produto e nos selos de preço/promoção.
-        hard: '4px 4px 0 rgb(var(--ink))',
-        'hard-sm': '3px 3px 0 rgb(var(--ink))',
+        // Sombra mais presente para elementos "flutuantes" de destaque
+        // (banner, cartão de informações do estabelecimento).
+        elevated: '0 4px 16px rgba(0,0,0,0.06), 0 20px 48px -16px rgba(0,0,0,0.18)',
       },
     },
   },
