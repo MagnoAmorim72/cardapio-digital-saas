@@ -1,11 +1,8 @@
 import { MapPin, Instagram, Facebook, Clock } from 'lucide-react';
 import type { Tenant, WeekDay } from '@/types';
 import { WhatsAppButton } from './WhatsAppButton';
-
-const DAY_LABELS: Record<WeekDay, string> = {
-  seg: 'Segunda', ter: 'Terça', qua: 'Quarta', qui: 'Quinta',
-  sex: 'Sexta', sab: 'Sábado', dom: 'Domingo',
-};
+import { BurgerIllustration } from './BurgerIllustration';
+import { buildDoodlePatternDataUri } from '@/utils/doodlePattern';
 
 function isOpenNow(tenant: Tenant): boolean {
   const days: WeekDay[] = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
@@ -23,19 +20,42 @@ export function Hero({ tenant }: { tenant: Tenant }) {
   const open = isOpenNow(tenant);
 
   return (
-    <section className="relative">
-      <div className="h-40 w-full overflow-hidden bg-surface-raised sm:h-56">
-        {tenant.banner_url ? (
+    <section className="relative overflow-hidden border-b-4 border-ink/10">
+      {tenant.banner_url ? (
+        // Foto de banner real do estabelecimento tem sempre prioridade.
+        <div className="h-40 w-full overflow-hidden sm:h-56">
           <img src={tenant.banner_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-brand-primary/30 to-brand-secondary/20" />
-        )}
-      </div>
+        </div>
+      ) : (
+        // Estado ilustrado (padrão para quem ainda não subiu um banner próprio).
+        <div
+          className="relative px-4 pb-10 pt-8 sm:pb-14 sm:pt-12"
+          style={{
+            backgroundColor: `rgb(${tenant.theme.secondary} / 0.16)`,
+            backgroundImage: buildDoodlePatternDataUri(tenant.theme.secondary),
+            backgroundSize: '120px 120px',
+          }}
+        >
+          <div className="mx-auto grid max-w-3xl grid-cols-1 items-center gap-6 sm:grid-cols-2 sm:gap-4">
+            <div>
+              <span className="inline-block rounded-xl border-2 border-dashed border-ink/30 bg-surface/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+                {tenant.description ? tenant.description.slice(0, 46) : 'Sabor de verdade, todo santo dia'}
+              </span>
+              <h1 className="mt-3 font-display text-4xl font-semibold uppercase leading-[0.95] tracking-tight text-ink sm:text-5xl">
+                {tenant.name}
+              </h1>
+            </div>
+            <div className="flex justify-center sm:justify-end">
+              <BurgerIllustration className="w-44 sm:w-56" />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-3xl px-4">
-        <div className="-mt-6 flex flex-col gap-3 rounded-card bg-surface-raised p-4 shadow-card sm:flex-row sm:items-center sm:justify-between">
+        <div className="-mt-6 flex flex-col gap-3 rounded-card border-2 border-ink/10 bg-surface-raised p-4 shadow-hard-sm sm:flex-row sm:items-center sm:justify-between">
           <div>
-            {tenant.description && (
+            {tenant.banner_url && tenant.description && (
               <p className="mb-2 text-sm text-ink-muted">{tenant.description}</p>
             )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-muted">
@@ -83,5 +103,3 @@ export function Hero({ tenant }: { tenant: Tenant }) {
     </section>
   );
 }
-
-export { DAY_LABELS };

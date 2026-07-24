@@ -38,10 +38,10 @@ export function CategoryChips({ categories, activeId, onSelect }: CategoryChipsP
         aria-selected={activeId === null}
         onClick={() => onSelect(null)}
         className={cn(
-          'shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors',
+          'shrink-0 rounded-full border-2 px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-colors',
           activeId === null
-            ? 'bg-brand-primary text-white'
-            : 'bg-surface-raised text-ink-muted hover:text-ink'
+            ? 'border-ink bg-brand-primary text-white shadow-hard-sm'
+            : 'border-ink/10 bg-surface-raised text-ink-muted hover:text-ink'
         )}
       >
         Tudo
@@ -53,10 +53,10 @@ export function CategoryChips({ categories, activeId, onSelect }: CategoryChipsP
           aria-selected={activeId === cat.id}
           onClick={() => onSelect(cat.id)}
           className={cn(
-            'flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors',
+            'flex shrink-0 items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-colors',
             activeId === cat.id
-              ? 'bg-brand-primary text-white'
-              : 'bg-surface-raised text-ink-muted hover:text-ink'
+              ? 'border-ink bg-brand-primary text-white shadow-hard-sm'
+              : 'border-ink/10 bg-surface-raised text-ink-muted hover:text-ink'
           )}
         >
           <CategoryIcon name={cat.icon} />

@@ -14,21 +14,23 @@ export function Header({ tenant, search, onSearchChange }: HeaderProps) {
   const { itemCount, openCart } = useCart();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-ink/10 bg-surface/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b-2 border-ink/10 bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
         {tenant.logo_url ? (
           <img
             src={tenant.logo_url}
             alt={tenant.name}
-            className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-ink/10"
+            className="h-11 w-11 shrink-0 rounded-full border-2 border-ink object-cover"
           />
         ) : (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary font-display font-bold text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-brand-primary font-display font-semibold text-white">
             {tenant.name.charAt(0)}
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-display text-base font-bold text-ink">{tenant.name}</h1>
+          <h1 className="truncate font-display text-lg font-semibold uppercase tracking-tight text-ink">
+            {tenant.name}
+          </h1>
         </div>
 
         <button
@@ -46,7 +48,7 @@ export function Header({ tenant, search, onSearchChange }: HeaderProps) {
         >
           <ShoppingBag className="h-5 w-5" />
           {itemCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-primary px-1 text-[10px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full border border-ink bg-brand-primary px-1 text-[10px] font-bold text-white">
               {itemCount}
             </span>
           )}
@@ -62,7 +64,7 @@ export function Header({ tenant, search, onSearchChange }: HeaderProps) {
             type="search"
             placeholder="Buscar no cardápio..."
             aria-label="Buscar produtos"
-            className="w-full rounded-full border border-ink/15 bg-surface-raised py-2.5 pl-9 pr-4 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            className="w-full rounded-full border-2 border-ink/15 bg-surface-raised py-2.5 pl-9 pr-4 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand-primary"
           />
         </div>
       </div>

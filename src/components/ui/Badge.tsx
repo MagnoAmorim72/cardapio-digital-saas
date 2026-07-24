@@ -4,18 +4,18 @@ import type { ProductTag } from '@/types';
 import { PRODUCT_TAG_LABELS } from '@/types';
 
 const TAG_STYLES: Record<ProductTag, string> = {
-  novo: 'bg-blue-500/15 text-blue-400',
-  promocao: 'bg-brand-primary/15 text-brand-primary',
-  mais_vendido: 'bg-amber-500/15 text-amber-400',
-  vegano: 'bg-emerald-500/15 text-emerald-400',
-  sem_gluten: 'bg-purple-500/15 text-purple-400',
+  novo: 'bg-blue-500 text-white',
+  promocao: 'bg-brand-primary text-white',
+  mais_vendido: 'bg-amber-500 text-white',
+  vegano: 'bg-emerald-500 text-white',
+  sem_gluten: 'bg-purple-500 text-white',
 };
 
 export function TagBadge({ tag }: { tag: ProductTag }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+        'inline-flex items-center rounded-full border-2 border-ink px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide shadow-hard-sm',
         TAG_STYLES[tag]
       )}
     >

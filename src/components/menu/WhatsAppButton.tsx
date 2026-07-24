@@ -15,7 +15,7 @@ export function WhatsAppButton({ phone, label = 'Pedir no WhatsApp', message }: 
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600"
+      className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-ink bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-hard-sm transition hover:brightness-105 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
     >
       <MessageCircle className="h-4 w-4" />
       {label}

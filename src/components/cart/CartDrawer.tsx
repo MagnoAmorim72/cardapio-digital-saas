@@ -176,7 +176,7 @@ export function CartDrawer() {
                 <Button
                   onClick={handleCheckout}
                   isLoading={submitting}
-                  className="w-full"
+                  className="w-full border-2 border-ink shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                   size="lg"
                 >
                   Finalizar pelo WhatsApp
