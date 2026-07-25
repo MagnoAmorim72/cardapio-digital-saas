@@ -1,6 +1,9 @@
-import { MapPin, Instagram, Facebook, Clock } from 'lucide-react';
-import type { Tenant, WeekDay } from '@/types';
+import { useEffect, useState } from 'react';
+import { MapPin, Instagram, Facebook, Clock, Flame } from 'lucide-react';
+import type { Tenant, WeekDay, Product } from '@/types';
 import { WhatsAppButton } from './WhatsAppButton';
+import { getShowcaseProduct } from '@/services/productService';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 function isOpenNow(tenant: Tenant): boolean {
   const days: WeekDay[] = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
@@ -16,19 +19,57 @@ function isOpenNow(tenant: Tenant): boolean {
 
 export function Hero({ tenant }: { tenant: Tenant }) {
   const open = isOpenNow(tenant);
+  const [showcaseProduct, setShowcaseProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    // Só precisamos buscar um produto-vitrine quando não há banner próprio.
+    if (tenant.banner_url) return;
+    let active = true;
+    getShowcaseProduct(tenant.id).then((product) => {
+      if (active) setShowcaseProduct(product);
+    });
+    return () => {
+      active = false;
+    };
+  }, [tenant.id, tenant.banner_url]);
+
+  const showcasePrice = showcaseProduct
+    ? showcaseProduct.promo_price ?? showcaseProduct.price
+    : null;
 
   return (
     <section className="mx-auto max-w-3xl px-4 pt-4">
-      {/* Banner: foto real do estabelecimento em destaque; sem foto cadastrada,
-          usamos um gradiente suave nas cores da marca — discreto e elegante,
-          nunca "cartunizado". */}
-      <div className="overflow-hidden rounded-3xl shadow-elevated">
+      {/* Prioridade 1: foto de banner cadastrada manualmente pelo estabelecimento.
+          Prioridade 2: vitrine automática do produto em destaque/promoção.
+          Prioridade 3 (loja ainda sem fotos): gradiente discreto nas cores da marca. */}
+      <div className="relative overflow-hidden rounded-3xl shadow-elevated">
         {tenant.banner_url ? (
-          <img
-            src={tenant.banner_url}
-            alt=""
-            className="h-44 w-full object-cover sm:h-64"
-          />
+          <img src={tenant.banner_url} alt="" className="h-44 w-full object-cover sm:h-64" />
+        ) : showcaseProduct?.image_url ? (
+          <div className="relative h-44 w-full sm:h-64">
+            <img
+              src={showcaseProduct.image_url}
+              alt={showcaseProduct.name}
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
+              <div>
+                <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                  <Flame className="h-3 w-3" />
+                  {showcaseProduct.is_featured ? 'Destaque da casa' : 'Oferta especial'}
+                </span>
+                <p className="font-display text-lg font-bold leading-tight text-white sm:text-xl">
+                  {showcaseProduct.name}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+                <span className="block font-mono text-base font-bold text-ink sm:text-lg">
+                  {formatCurrency(showcasePrice!)}
+                </span>
+              </span>
+            </div>
+          </div>
         ) : (
           <div
             className="h-44 w-full sm:h-64"

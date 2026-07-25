@@ -58,6 +58,37 @@ export async function getProductBySlug(
   return data as unknown as Product;
 }
 
+/**
+ * Escolhe o melhor produto para "vitrine" do banner do cardápio, quando o
+ * estabelecimento não cadastrou uma foto de banner própria. Prioridade:
+ * 1) produto marcado como destaque, com foto
+ * 2) produto em promoção, com foto
+ * 3) qualquer produto disponível, com foto
+ * Retorna null se a loja ainda não tiver nenhum produto com foto.
+ */
+export async function getShowcaseProduct(tenantId: string): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*, category:categories(id, name, slug)')
+    .eq('tenant_id', tenantId)
+    .eq('is_available', true)
+    .not('image_url', 'is', null)
+    .order('display_order', { ascending: true })
+    .limit(20);
+
+  if (error) throw error;
+  const products = data as unknown as Product[];
+  if (products.length === 0) return null;
+
+  const featured = products.find((p) => p.is_featured);
+  if (featured) return featured;
+
+  const onPromo = products.find((p) => p.promo_price != null);
+  if (onPromo) return onPromo;
+
+  return products[0];
+}
+
 export async function createProduct(
   payload: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'sold_count' | 'category'>
 ): Promise<Product> {
