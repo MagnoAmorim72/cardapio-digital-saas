@@ -59,14 +59,12 @@ export async function getProductBySlug(
 }
 
 /**
- * Escolhe o melhor produto para "vitrine" do banner do cardápio, quando o
- * estabelecimento não cadastrou uma foto de banner própria. Prioridade:
- * 1) produto marcado como destaque, com foto
- * 2) produto em promoção, com foto
- * 3) qualquer produto disponível, com foto
- * Retorna null se a loja ainda não tiver nenhum produto com foto.
+ * Escolhe até `limit` produtos para o carrossel do banner do cardápio,
+ * quando o estabelecimento não cadastrou uma foto de banner própria.
+ * Prioridade: destaques primeiro, depois promoções, sempre com foto.
+ * Retorna [] se a loja ainda não tiver nenhum produto com foto qualificado.
  */
-export async function getShowcaseProduct(tenantId: string): Promise<Product | null> {
+export async function getShowcaseProducts(tenantId: string, limit = 5): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
     .select('*, category:categories(id, name, slug)')
@@ -74,19 +72,16 @@ export async function getShowcaseProduct(tenantId: string): Promise<Product | nu
     .eq('is_available', true)
     .not('image_url', 'is', null)
     .order('display_order', { ascending: true })
-    .limit(20);
+    .limit(30);
 
   if (error) throw error;
   const products = data as unknown as Product[];
-  if (products.length === 0) return null;
 
-  const featured = products.find((p) => p.is_featured);
-  if (featured) return featured;
+  const featured = products.filter((p) => p.is_featured);
+  const onPromo = products.filter((p) => !p.is_featured && p.promo_price != null);
+  const rest = products.filter((p) => !p.is_featured && p.promo_price == null);
 
-  const onPromo = products.find((p) => p.promo_price != null);
-  if (onPromo) return onPromo;
-
-  return products[0];
+  return [...featured, ...onPromo, ...rest].slice(0, limit);
 }
 
 export async function createProduct(

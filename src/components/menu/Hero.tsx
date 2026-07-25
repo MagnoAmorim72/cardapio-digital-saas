@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { MapPin, Instagram, Facebook, Clock, Flame } from 'lucide-react';
 import type { Tenant, WeekDay, Product } from '@/types';
 import { WhatsAppButton } from './WhatsAppButton';
-import { getShowcaseProduct } from '@/services/productService';
+import { getShowcaseProducts } from '@/services/productService';
 import { formatCurrency } from '@/utils/formatCurrency';
 
 function isOpenNow(tenant: Tenant): boolean {
@@ -17,58 +18,97 @@ function isOpenNow(tenant: Tenant): boolean {
   return nowMinutes >= openH * 60 + openM && nowMinutes <= closeH * 60 + closeM;
 }
 
+const AUTO_ROTATE_MS = 5000;
+
 export function Hero({ tenant }: { tenant: Tenant }) {
   const open = isOpenNow(tenant);
-  const [showcaseProduct, setShowcaseProduct] = useState<Product | null>(null);
+  const [showcaseProducts, setShowcaseProducts] = useState<Product[]>([]);
+  const [slideIndex, setSlideIndex] = useState(0);
 
   useEffect(() => {
-    // Só precisamos buscar um produto-vitrine quando não há banner próprio.
+    // Só precisamos da vitrine de produtos quando não há banner próprio.
     if (tenant.banner_url) return;
     let active = true;
-    getShowcaseProduct(tenant.id).then((product) => {
-      if (active) setShowcaseProduct(product);
+    getShowcaseProducts(tenant.id).then((products) => {
+      if (active) setShowcaseProducts(products);
     });
     return () => {
       active = false;
     };
   }, [tenant.id, tenant.banner_url]);
 
-  const showcasePrice = showcaseProduct
-    ? showcaseProduct.promo_price ?? showcaseProduct.price
-    : null;
+  // Avança o carrossel sozinho a cada alguns segundos, quando há mais de um produto.
+  useEffect(() => {
+    if (showcaseProducts.length < 2) return;
+    const timer = setInterval(() => {
+      setSlideIndex((i) => (i + 1) % showcaseProducts.length);
+    }, AUTO_ROTATE_MS);
+    return () => clearInterval(timer);
+  }, [showcaseProducts.length]);
+
+  const current = showcaseProducts[slideIndex];
+  const currentPrice = current ? current.promo_price ?? current.price : null;
 
   return (
     <section className="mx-auto max-w-3xl px-4 pt-4">
       {/* Prioridade 1: foto de banner cadastrada manualmente pelo estabelecimento.
-          Prioridade 2: vitrine automática do produto em destaque/promoção.
+          Prioridade 2: carrossel automático de produtos em destaque/promoção.
           Prioridade 3 (loja ainda sem fotos): gradiente discreto nas cores da marca. */}
       <div className="relative overflow-hidden rounded-3xl shadow-elevated">
         {tenant.banner_url ? (
           <img src={tenant.banner_url} alt="" className="h-44 w-full object-cover sm:h-64" />
-        ) : showcaseProduct?.image_url ? (
+        ) : current?.image_url ? (
           <div className="relative h-44 w-full sm:h-64">
-            <img
-              src={showcaseProduct.image_url}
-              alt={showcaseProduct.name}
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
-              <div>
-                <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-                  <Flame className="h-3 w-3" />
-                  {showcaseProduct.is_featured ? 'Destaque da casa' : 'Oferta especial'}
-                </span>
-                <p className="font-display text-lg font-bold leading-tight text-white sm:text-xl">
-                  {showcaseProduct.name}
-                </p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="absolute inset-0"
+              >
+                <img
+                  src={current.image_url}
+                  alt={current.name}
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                {/* bottom-8 (não bottom-0): deixa uma folga livre para o cartão de
+                    informações, que se sobrepõe 2rem (-mt-8) por cima do banner. */}
+                <div className="absolute inset-x-0 bottom-8 flex items-end justify-between gap-3 px-4">
+                  <div className="min-w-0">
+                    <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                      <Flame className="h-3 w-3" />
+                      {current.is_featured ? 'Destaque da casa' : 'Oferta especial'}
+                    </span>
+                    <p className="truncate font-display text-lg font-bold leading-tight text-white sm:text-xl">
+                      {current.name}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+                    <span className="block font-mono text-base font-bold text-ink sm:text-lg">
+                      {formatCurrency(currentPrice!)}
+                    </span>
+                  </span>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {showcaseProducts.length > 1 && (
+              <div className="absolute right-4 top-4 flex gap-1.5">
+                {showcaseProducts.map((p, i) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSlideIndex(i)}
+                    aria-label={`Ver ${p.name}`}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === slideIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50'
+                    }`}
+                  />
+                ))}
               </div>
-              <span className="shrink-0 rounded-xl bg-white px-3 py-2 text-right shadow-sm">
-                <span className="block font-mono text-base font-bold text-ink sm:text-lg">
-                  {formatCurrency(showcasePrice!)}
-                </span>
-              </span>
-            </div>
+            )}
           </div>
         ) : (
           <div
