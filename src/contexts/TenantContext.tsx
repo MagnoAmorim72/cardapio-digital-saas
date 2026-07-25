@@ -56,7 +56,12 @@ function applyTenantTheme(tenant: Tenant) {
   const root = document.documentElement;
   root.style.setProperty('--brand-primary', tenant.theme.primary);
   root.style.setProperty('--brand-secondary', tenant.theme.secondary);
-  root.classList.toggle('dark', tenant.theme.mode === 'dark');
+  // Importante: NÃO alteramos a classe "dark" aqui. Claro/escuro é escolha
+  // pessoal do visitante, controlada única e exclusivamente pelo
+  // ThemeContext (botão de sol/lua) — ver src/contexts/ThemeContext.tsx.
+  // O campo tenant.theme.mode fica reservado para uso futuro (ex: uma
+  // preferência de tema no painel admin), mas não deve competir com a
+  // escolha do visitante nem sobrescrevê-la.
 }
 
 export function useTenantContext(): TenantContextValue {
