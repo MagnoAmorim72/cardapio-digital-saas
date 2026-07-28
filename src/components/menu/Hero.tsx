@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MapPin, Instagram, Facebook, Clock, Flame } from 'lucide-react';
-import type { Tenant, WeekDay, Product } from '@/types';
+import type { Tenant, WeekDay, Product, Banner } from '@/types';
 import { WhatsAppButton } from './WhatsAppButton';
 import { getShowcaseProducts } from '@/services/productService';
+import { listActiveBanners } from '@/services/bannerService';
 import { formatCurrency } from '@/utils/formatCurrency';
 
 function isOpenNow(tenant: Tenant): boolean {
@@ -20,44 +21,65 @@ function isOpenNow(tenant: Tenant): boolean {
 
 const AUTO_ROTATE_MS = 5000;
 
+/**
+ * Um "slide" do carrossel pode ser um banner livre (campanha cadastrada
+ * no admin, sem produto vinculado) ou a vitrine automática de um produto
+ * em destaque/promoção. Os dois tipos se misturam no mesmo carrossel.
+ */
+type HeroSlide =
+  | { kind: 'banner'; id: string; imageUrl: string; title: string | null; subtitle: string | null }
+  | { kind: 'product'; id: string; product: Product };
+
 export function Hero({ tenant }: { tenant: Tenant }) {
   const open = isOpenNow(tenant);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [showcaseProducts, setShowcaseProducts] = useState<Product[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
 
   useEffect(() => {
-    // Só precisamos da vitrine de produtos quando não há banner próprio.
-    if (tenant.banner_url) return;
     let active = true;
-    getShowcaseProducts(tenant.id).then((products) => {
-      if (active) setShowcaseProducts(products);
-    });
+    Promise.all([listActiveBanners(tenant.id), getShowcaseProducts(tenant.id)]).then(
+      ([activeBanners, products]) => {
+        if (!active) return;
+        setBanners(activeBanners);
+        setShowcaseProducts(products);
+      }
+    );
     return () => {
       active = false;
     };
-  }, [tenant.id, tenant.banner_url]);
+  }, [tenant.id]);
 
-  // Avança o carrossel sozinho a cada alguns segundos, quando há mais de um produto.
+  const slides: HeroSlide[] = useMemo(() => {
+    const result: HeroSlide[] = [];
+    // Foto de banner "clássica" cadastrada em Configurações continua valendo,
+    // como o primeiro slide fixo, para quem já a configurou antes.
+    if (tenant.banner_url) {
+      result.push({ kind: 'banner', id: 'legacy-banner', imageUrl: tenant.banner_url, title: null, subtitle: null });
+    }
+    banners.forEach((b) =>
+      result.push({ kind: 'banner', id: b.id, imageUrl: b.image_url, title: b.title, subtitle: b.subtitle })
+    );
+    showcaseProducts.forEach((p) => result.push({ kind: 'product', id: p.id, product: p }));
+    return result;
+  }, [tenant.banner_url, banners, showcaseProducts]);
+
+  // Avança o carrossel sozinho a cada alguns segundos, quando há mais de um slide.
   useEffect(() => {
-    if (showcaseProducts.length < 2) return;
+    setSlideIndex(0);
+    if (slides.length < 2) return;
     const timer = setInterval(() => {
-      setSlideIndex((i) => (i + 1) % showcaseProducts.length);
+      setSlideIndex((i) => (i + 1) % slides.length);
     }, AUTO_ROTATE_MS);
     return () => clearInterval(timer);
-  }, [showcaseProducts.length]);
+  }, [slides.length]);
 
-  const current = showcaseProducts[slideIndex];
-  const currentPrice = current ? current.promo_price ?? current.price : null;
+  const current = slides[slideIndex];
 
   return (
     <section className="mx-auto max-w-3xl px-4 pt-4">
-      {/* Prioridade 1: foto de banner cadastrada manualmente pelo estabelecimento.
-          Prioridade 2: carrossel automático de produtos em destaque/promoção.
-          Prioridade 3 (loja ainda sem fotos): gradiente discreto nas cores da marca. */}
       <div className="relative overflow-hidden rounded-3xl shadow-elevated">
-        {tenant.banner_url ? (
-          <img src={tenant.banner_url} alt="" className="h-44 w-full object-cover sm:h-64" />
-        ) : current?.image_url ? (
+        {current ? (
           <div className="relative h-44 w-full sm:h-64">
             <AnimatePresence mode="wait">
               <motion.div
@@ -68,40 +90,25 @@ export function Hero({ tenant }: { tenant: Tenant }) {
                 transition={{ duration: 0.5 }}
                 className="absolute inset-0"
               >
-                <img
-                  src={current.image_url}
-                  alt={current.name}
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                {/* bottom-8 (não bottom-0): deixa uma folga livre para o cartão de
-                    informações, que se sobrepõe 2rem (-mt-8) por cima do banner. */}
-                <div className="absolute inset-x-0 bottom-8 flex items-end justify-between gap-3 px-4">
-                  <div className="min-w-0">
-                    <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-                      <Flame className="h-3 w-3" />
-                      {current.is_featured ? 'Destaque da casa' : 'Oferta especial'}
-                    </span>
-                    <p className="truncate font-display text-lg font-bold leading-tight text-white sm:text-xl">
-                      {current.name}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-xl bg-white px-3 py-2 text-right shadow-sm">
-                    <span className="block font-mono text-base font-bold text-ink sm:text-lg">
-                      {formatCurrency(currentPrice!)}
-                    </span>
-                  </span>
-                </div>
+                {current.kind === 'product' ? (
+                  <ProductSlideContent product={current.product} />
+                ) : (
+                  <BannerSlideContent
+                    imageUrl={current.imageUrl}
+                    title={current.title}
+                    subtitle={current.subtitle}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
 
-            {showcaseProducts.length > 1 && (
+            {slides.length > 1 && (
               <div className="absolute right-4 top-4 flex gap-1.5">
-                {showcaseProducts.map((p, i) => (
+                {slides.map((s, i) => (
                   <button
-                    key={p.id}
+                    key={s.id}
                     onClick={() => setSlideIndex(i)}
-                    aria-label={`Ver ${p.name}`}
+                    aria-label={`Ver slide ${i + 1}`}
                     className={`h-1.5 rounded-full transition-all ${
                       i === slideIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50'
                     }`}
@@ -111,6 +118,7 @@ export function Hero({ tenant }: { tenant: Tenant }) {
             )}
           </div>
         ) : (
+          // Nenhum banner, campanha ou produto com foto ainda: gradiente discreto.
           <div
             className="h-44 w-full sm:h-64"
             style={{
@@ -169,5 +177,65 @@ export function Hero({ tenant }: { tenant: Tenant }) {
         )}
       </div>
     </section>
+  );
+}
+
+/** Slide de produto em destaque/promoção: foto + selo + nome + preço. */
+function ProductSlideContent({ product }: { product: Product }) {
+  const price = product.promo_price ?? product.price;
+  return (
+    <>
+      <img src={product.image_url!} alt={product.name} className="h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+      {/* bottom-8 (não bottom-0): deixa folga para o cartão de informações,
+          que se sobrepõe 2rem (-mt-8) por cima do banner. */}
+      <div className="absolute inset-x-0 bottom-8 flex items-end justify-between gap-3 px-4">
+        <div className="min-w-0">
+          <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+            <Flame className="h-3 w-3" />
+            {product.is_featured ? 'Destaque da casa' : 'Oferta especial'}
+          </span>
+          <p className="truncate font-display text-lg font-bold leading-tight text-white sm:text-xl">
+            {product.name}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+          <span className="block font-mono text-base font-bold text-ink sm:text-lg">
+            {formatCurrency(price)}
+          </span>
+        </span>
+      </div>
+    </>
+  );
+}
+
+/** Slide de banner livre (campanha cadastrada no admin, sem produto vinculado). */
+function BannerSlideContent({
+  imageUrl,
+  title,
+  subtitle,
+}: {
+  imageUrl: string;
+  title: string | null;
+  subtitle: string | null;
+}) {
+  const hasText = Boolean(title || subtitle);
+  return (
+    <>
+      <img src={imageUrl} alt={title ?? ''} className="h-full w-full object-cover" />
+      {hasText && (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+          <div className="absolute inset-x-0 bottom-8 px-4">
+            {title && (
+              <p className="font-display text-lg font-bold leading-tight text-white sm:text-xl">
+                {title}
+              </p>
+            )}
+            {subtitle && <p className="text-sm text-white/90">{subtitle}</p>}
+          </div>
+        </>
+      )}
+    </>
   );
 }

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, UtensilsCrossed, Tags, Ticket, ShoppingCart, Settings, LogOut, Menu, X,
+  LayoutDashboard, UtensilsCrossed, Tags, Ticket, ShoppingCart, Settings, LogOut, Menu, X, Image,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/cn';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/produtos', label: 'Produtos', icon: UtensilsCrossed },
   { to: '/admin/categorias', label: 'Categorias', icon: Tags },
+  { to: '/admin/banners', label: 'Banners', icon: Image },
   { to: '/admin/cupons', label: 'Cupons', icon: Ticket },
   { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingCart },
   { to: '/admin/configuracoes', label: 'Configurações', icon: Settings },

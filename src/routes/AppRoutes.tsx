@@ -13,6 +13,7 @@ const LoginPage = lazy(() => import('@/pages/admin/LoginPage').then((m) => ({ de
 const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const ProductsPage = lazy(() => import('@/pages/admin/ProductsPage').then((m) => ({ default: m.ProductsPage })));
 const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
+const BannersPage = lazy(() => import('@/pages/admin/BannersPage').then((m) => ({ default: m.BannersPage })));
 const CouponsPage = lazy(() => import('@/pages/admin/CouponsPage').then((m) => ({ default: m.CouponsPage })));
 const OrdersPage = lazy(() => import('@/pages/admin/OrdersPage').then((m) => ({ default: m.OrdersPage })));
 const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage').then((m) => ({ default: m.SettingsPage })));
@@ -67,6 +68,14 @@ export function AppRoutes() {
             element={
               <Suspense fallback={<AdminFallback />}>
                 <CategoriesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/admin/banners"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <BannersPage />
               </Suspense>
             }
           />
