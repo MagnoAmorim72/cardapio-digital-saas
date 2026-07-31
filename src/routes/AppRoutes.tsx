@@ -4,6 +4,7 @@ import { PublicLayout } from '@/layouts/PublicLayout';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { MenuPage } from '@/pages/public/MenuPage';
+import { PaymentResultPage } from '@/pages/public/PaymentResultPage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 
 // O painel administrativo é carregado sob demanda (code-splitting) para
@@ -33,6 +34,11 @@ export function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<MenuPage />} />
       </Route>
+
+      {/* Retorno do pagamento com cartão (Mercado Pago redireciona pra cá) */}
+      <Route path="/pagamento/sucesso" element={<PaymentResultPage status="success" />} />
+      <Route path="/pagamento/pendente" element={<PaymentResultPage status="pending" />} />
+      <Route path="/pagamento/erro" element={<PaymentResultPage status="error" />} />
 
       {/* Autenticação do painel */}
       <Route

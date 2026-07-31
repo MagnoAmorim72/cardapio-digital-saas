@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag } from 'lucide-react';
+import { X, ShoppingBag, CreditCard } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useTenant } from '@/hooks/useTenant';
 import { CartItemRow } from './CartItemRow';
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { buildOrderMessage, buildWhatsAppLink } from '@/utils/whatsapp';
 import { createOrder } from '@/services/orderService';
+import { createCardPayment } from '@/services/paymentService';
 
 export function CartDrawer() {
   const { tenant } = useTenant();
@@ -23,8 +24,41 @@ export function CartDrawer() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [mapsLink, setMapsLink] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cardSubmitting, setCardSubmitting] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
 
   if (!tenant) return null;
+
+  async function handleCardPayment() {
+    if (!tenant || items.length === 0) return;
+    setCardSubmitting(true);
+    setCardError(null);
+    try {
+      const { checkoutUrl } = await createCardPayment({
+        tenantId: tenant.id,
+        items,
+        customerName,
+        couponCode: coupon?.code ?? null,
+        subtotal,
+        discount,
+        deliveryFee,
+        total,
+        notes: [deliveryAddress.trim(), mapsLink].filter(Boolean).join(' | ') || null,
+      });
+      clearCart();
+      setDeliveryAddress('');
+      setMapsLink(null);
+      // Navegação da própria aba: o cliente vai para a tela de pagamento do
+      // Mercado Pago e volta para /pagamento/sucesso (ou pendente/erro)
+      // automaticamente depois de pagar.
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      setCardError(
+        err instanceof Error ? err.message : 'Não foi possível iniciar o pagamento. Tente novamente.'
+      );
+      setCardSubmitting(false);
+    }
+  }
 
   async function handleCheckout() {
     if (!tenant || items.length === 0) return;
@@ -72,6 +106,7 @@ export function CartDrawer() {
           delivery_fee: deliveryFee,
           total,
           notes: [deliveryAddress.trim(), mapsLink].filter(Boolean).join(' | ') || null,
+          payment_method: 'whatsapp',
         });
       } catch (err) {
         console.error('Falha ao registrar o pedido no painel (o pedido ainda foi enviado por WhatsApp):', err);
@@ -181,6 +216,26 @@ export function CartDrawer() {
                 >
                   Finalizar pelo WhatsApp
                 </Button>
+
+                {tenant.card_payment_enabled && (
+                  <>
+                    <div className="my-3 flex items-center gap-3 text-xs text-ink-muted">
+                      <div className="h-px flex-1 bg-ink/10" />
+                      ou
+                      <div className="h-px flex-1 bg-ink/10" />
+                    </div>
+                    <Button
+                      onClick={handleCardPayment}
+                      isLoading={cardSubmitting}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      <CreditCard className="h-4 w-4" /> Pagar com cartão agora
+                    </Button>
+                    {cardError && <p className="mt-1.5 text-xs text-red-500">{cardError}</p>}
+                  </>
+                )}
               </div>
             )}
           </motion.aside>

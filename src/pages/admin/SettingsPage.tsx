@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { PaymentSettingsSection } from '@/components/admin/PaymentSettingsSection';
 import { useTenant } from '@/hooks/useTenant';
 import { updateTenant } from '@/services/tenantService';
 import { uploadTenantAsset } from '@/services/storageService';
@@ -181,6 +182,10 @@ export function SettingsPage() {
           Salvar configurações
         </Button>
       </form>
+
+      <div className="mt-8">
+        <PaymentSettingsSection />
+      </div>
     </div>
   );
 }

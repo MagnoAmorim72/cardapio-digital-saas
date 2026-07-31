@@ -49,6 +49,7 @@ export interface Tenant {
   facebook_url: string | null;
   delivery_fee: number;
   min_order_value: number;
+  card_payment_enabled: boolean;
   opening_hours: OpeningHours;
   theme: TenantTheme;
   created_at: string;
@@ -124,6 +125,17 @@ export type OrderStatus =
   | 'completed'
   | 'cancelled';
 
+export type PaymentMethod = 'whatsapp' | 'pix' | 'card';
+export type PaymentStatus = 'not_applicable' | 'pending' | 'approved' | 'rejected';
+
+export interface TenantPaymentSettings {
+  tenant_id: string;
+  mp_access_token: string | null;
+  mp_public_key: string | null;
+  is_test_mode: boolean;
+  updated_at: string;
+}
+
 export interface OrderItemSnapshot {
   product_id: string;
   name: string;
@@ -145,6 +157,10 @@ export interface Order {
   total: number;
   status: OrderStatus;
   notes: string | null;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  mp_preference_id: string | null;
+  mp_payment_id: string | null;
   created_at: string;
 }
 

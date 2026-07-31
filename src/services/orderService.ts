@@ -1,7 +1,9 @@
 import { supabase } from './supabaseClient';
 import type { Order, OrderItemSnapshot, OrderStatus } from '@/types';
 
-export async function createOrder(payload: Omit<Order, 'id' | 'created_at' | 'status'>): Promise<void> {
+export async function createOrder(
+  payload: Omit<Order, 'id' | 'created_at' | 'status' | 'payment_status' | 'mp_preference_id' | 'mp_payment_id'>
+): Promise<void> {
   // Sem .select().single(): o carrinho não precisa ler o pedido de volta,
   // só criá-lo. Pedir a linha de volta ("Prefer: return=representation")
   // exigiria também permissão de LEITURA sobre pedidos — que é restrita ao

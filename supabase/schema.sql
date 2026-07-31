@@ -22,11 +22,13 @@ create table if not exists public.tenants (
   banner_url text,
   description text,
   whatsapp_number text,                      -- formato E.164, ex: 5582999999999
+  pix_key text,                              -- chave Pix (CPF/CNPJ/e-mail/telefone/aleatória) exibida no checkout
   address text,
   instagram_url text,
   facebook_url text,
   delivery_fee numeric(10,2) not null default 0,
   min_order_value numeric(10,2) not null default 0,
+  card_payment_enabled boolean not null default false, -- flag pública (sem segredo nenhum); a chave de verdade fica em tenant_payment_settings
   opening_hours jsonb not null default '{
     "seg": {"open": "18:00", "close": "23:00", "closed": false},
     "ter": {"open": "18:00", "close": "23:00", "closed": false},
@@ -125,7 +127,37 @@ create table if not exists public.coupons (
 );
 
 -- -------------------------------------------------------------------------
--- 6. ORDERS (registro dos pedidos enviados via WhatsApp)
+-- 6.1 BANNERS (campanhas/propagandas soltas, exibidas no carrossel do
+-- banner do cardápio, misturadas com os produtos em destaque/promoção)
+-- -------------------------------------------------------------------------
+create table if not exists public.banners (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants (id) on delete cascade,
+  title text,
+  subtitle text,
+  image_url text not null,
+  is_active boolean not null default true,
+  display_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_banners_tenant on public.banners (tenant_id);
+
+-- -------------------------------------------------------------------------
+-- 6.2 TENANT_PAYMENT_SETTINGS (credenciais do Mercado Pago — NUNCA
+-- publicamente legível; só o admin do tenant e as Edge Functions,
+-- rodando com a service role key, têm acesso)
+-- -------------------------------------------------------------------------
+create table if not exists public.tenant_payment_settings (
+  tenant_id uuid primary key references public.tenants (id) on delete cascade,
+  mp_access_token text,          -- secreto: usado só no servidor (Edge Functions)
+  mp_public_key text,            -- não é segredo, mas guardado junto por conveniência
+  is_test_mode boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+-- -------------------------------------------------------------------------
+-- 7. ORDERS (registro dos pedidos enviados via WhatsApp)
 -- -------------------------------------------------------------------------
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
@@ -140,6 +172,10 @@ create table if not exists public.orders (
   total numeric(10,2) not null,
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'preparing', 'delivering', 'completed', 'cancelled')),
   notes text,
+  payment_method text not null default 'whatsapp' check (payment_method in ('whatsapp', 'pix', 'card')),
+  payment_status text not null default 'not_applicable' check (payment_status in ('not_applicable', 'pending', 'approved', 'rejected')),
+  mp_preference_id text,   -- id da preferência de pagamento criada no Mercado Pago
+  mp_payment_id text,      -- id do pagamento confirmado pelo Mercado Pago (via webhook)
   created_at timestamptz not null default now()
 );
 
@@ -164,6 +200,10 @@ drop trigger if exists trg_products_updated_at on public.products;
 create trigger trg_products_updated_at before update on public.products
   for each row execute function public.set_updated_at();
 
+drop trigger if exists trg_payment_settings_updated_at on public.tenant_payment_settings;
+create trigger trg_payment_settings_updated_at before update on public.tenant_payment_settings
+  for each row execute function public.set_updated_at();
+
 -- -------------------------------------------------------------------------
 -- FUNÇÃO AUXILIAR — verifica se o usuário logado administra o tenant
 -- -------------------------------------------------------------------------
@@ -186,6 +226,8 @@ alter table public.tenant_users enable row level security;
 alter table public.categories enable row level security;
 alter table public.products enable row level security;
 alter table public.coupons enable row level security;
+alter table public.banners enable row level security;
+alter table public.tenant_payment_settings enable row level security;
 alter table public.orders enable row level security;
 
 -- TENANTS: leitura pública (para renderizar o cardápio), escrita só do admin
@@ -236,10 +278,37 @@ create policy "coupons_admin_all" on public.coupons for all
   using (public.is_tenant_admin(tenant_id))
   with check (public.is_tenant_admin(tenant_id));
 
+-- BANNERS: leitura pública apenas dos ativos, escrita restrita ao admin do tenant
+drop policy if exists "banners_public_read" on public.banners;
+create policy "banners_public_read" on public.banners for select
+  using (is_active = true);
+
+drop policy if exists "banners_admin_all" on public.banners;
+create policy "banners_admin_all" on public.banners for all
+  using (public.is_tenant_admin(tenant_id))
+  with check (public.is_tenant_admin(tenant_id));
+
+-- TENANT_PAYMENT_SETTINGS: acesso exclusivo do admin do tenant. Sem política
+-- pública nenhuma — por padrão, o Postgres nega tudo que não tem policy
+-- explícita, então esta tabela é invisível para qualquer visitante do
+-- cardápio. As Edge Functions usam a service role key, que ignora RLS.
+drop policy if exists "payment_settings_admin_all" on public.tenant_payment_settings;
+create policy "payment_settings_admin_all" on public.tenant_payment_settings for all
+  using (public.is_tenant_admin(tenant_id))
+  with check (public.is_tenant_admin(tenant_id));
+
 -- ORDERS: criação pública (cliente final registra o pedido), leitura só do admin
 drop policy if exists "orders_public_insert" on public.orders;
 create policy "orders_public_insert" on public.orders for insert
-  with check (true);
+  with check (
+    -- Pedidos via WhatsApp/Pix continuam podendo ser criados direto pelo
+    -- cliente (como sempre foi). Pedidos com cartão só podem ser criados
+    -- pela Edge Function "create-payment", que usa a service role key e
+    -- por isso ignora esta política — nunca pelo cliente diretamente,
+    -- o que impede alguém de "forjar" um pagamento sem pagar de verdade.
+    payment_method in ('whatsapp', 'pix')
+    and payment_status = 'not_applicable'
+  );
 
 drop policy if exists "orders_admin_read" on public.orders;
 create policy "orders_admin_read" on public.orders for select
@@ -271,6 +340,12 @@ create policy "tenant_assets_auth_update" on storage.objects for update
 drop policy if exists "tenant_assets_auth_delete" on storage.objects;
 create policy "tenant_assets_auth_delete" on storage.objects for delete
   using (bucket_id = 'tenant-assets' and auth.role() = 'authenticated');
+
+-- =========================================================================
+-- REALTIME — permite que o painel admin seja notificado instantaneamente
+-- quando um novo pedido é criado (ver src/hooks/useRealtimeOrders.ts)
+-- =========================================================================
+alter publication supabase_realtime add table public.orders;
 
 -- =========================================================================
 -- SEED — dados de demonstração (opcional, remova em produção)

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, MessageCircle, QrCode, CreditCard } from 'lucide-react';
 import { useTenant } from '@/hooks/useTenant';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { DataTable } from '@/components/admin/DataTable';
 import { listOrders, updateOrderStatus } from '@/services/orderService';
 import { formatCurrency } from '@/utils/formatCurrency';
-import type { Order, OrderStatus } from '@/types';
+import type { Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Pendente',
@@ -14,6 +14,29 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   delivering: 'Saiu p/ entrega',
   completed: 'Concluído',
   cancelled: 'Cancelado',
+};
+
+const PAYMENT_METHOD_ICON: Record<PaymentMethod, typeof MessageCircle> = {
+  whatsapp: MessageCircle,
+  pix: QrCode,
+  card: CreditCard,
+};
+const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  whatsapp: 'Combinado no WhatsApp',
+  pix: 'Pix (manual)',
+  card: 'Cartão online',
+};
+const PAYMENT_STATUS_STYLE: Record<PaymentStatus, string> = {
+  not_applicable: 'text-ink-muted',
+  pending: 'text-amber-500',
+  approved: 'text-emerald-500',
+  rejected: 'text-red-500',
+};
+const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  not_applicable: '',
+  pending: 'Aguardando pagamento',
+  approved: 'Pago',
+  rejected: 'Recusado',
 };
 
 /** O endereço e o link do mapa são salvos juntos em `notes`, separados por " | ". */
@@ -100,6 +123,24 @@ export function OrdersPage() {
               },
             },
             { header: 'Itens', render: (o) => `${o.items.length} item(ns)` },
+            {
+              header: 'Pagamento',
+              render: (o) => {
+                const Icon = PAYMENT_METHOD_ICON[o.payment_method];
+                return (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-1 text-xs text-ink">
+                      <Icon className="h-3.5 w-3.5" /> {PAYMENT_METHOD_LABEL[o.payment_method]}
+                    </span>
+                    {o.payment_status !== 'not_applicable' && (
+                      <span className={`text-[11px] font-semibold ${PAYMENT_STATUS_STYLE[o.payment_status]}`}>
+                        {PAYMENT_STATUS_LABEL[o.payment_status]}
+                      </span>
+                    )}
+                  </div>
+                );
+              },
+            },
             { header: 'Total', render: (o) => <span className="font-mono">{formatCurrency(o.total)}</span> },
             {
               header: 'Status',
