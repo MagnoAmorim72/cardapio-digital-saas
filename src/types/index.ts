@@ -90,6 +90,17 @@ export interface Product {
   category?: Pick<Category, 'id' | 'name' | 'slug'>;
 }
 
+export interface Banner {
+  id: string;
+  tenant_id: string;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+}
+
 export interface Coupon {
   id: string;
   tenant_id: string;
