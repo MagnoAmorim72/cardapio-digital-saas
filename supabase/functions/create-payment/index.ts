@@ -88,13 +88,18 @@ Deno.serve(async (req) => {
     // 3) Monta e cria a preferência de pagamento no Mercado Pago.
     const notificationUrl = `${supabaseUrl}/functions/v1/mp-webhook?tenant_id=${body.tenant_id}`;
 
+    // Cobramos um único item com o valor TOTAL do pedido (já incluindo taxa
+    // de entrega e descontos aplicados) — evita qualquer desencontro entre o
+    // que é efetivamente cobrado no cartão e o total registrado no pedido.
     const preferencePayload = {
-      items: body.items.map((item) => ({
-        title: item.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        currency_id: 'BRL',
-      })),
+      items: [
+        {
+          title: `Pedido — ${body.items.length} ${body.items.length === 1 ? 'item' : 'itens'}`,
+          quantity: 1,
+          unit_price: body.total,
+          currency_id: 'BRL',
+        },
+      ],
       external_reference: order.id,
       notification_url: notificationUrl,
       back_urls: {
@@ -121,9 +126,10 @@ Deno.serve(async (req) => {
     }
 
     const preference = await mpResponse.json();
-    const checkoutUrl = paymentSettings.is_test_mode
-      ? preference.sandbox_init_point ?? preference.init_point
-      : preference.init_point;
+    // Com uma credencial de TESTE, o próprio init_point já redireciona para
+    // o ambiente de simulação automaticamente — não é preciso (e não é mais
+    // confiável) usar o campo separado "sandbox_init_point".
+    const checkoutUrl = preference.init_point;
 
     // 4) Guarda o id da preferência no pedido, para conseguirmos rastrear depois.
     await supabase.from('orders').update({ mp_preference_id: preference.id }).eq('id', order.id);

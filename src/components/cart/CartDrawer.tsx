@@ -157,87 +157,89 @@ export function CartDrawer() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4">
-              {items.length === 0 ? (
-                <p className="py-10 text-center text-sm text-ink-muted">Seu carrinho está vazio.</p>
-              ) : (
-                items.map((item) => <CartItemRow key={item.cartItemId} item={item} />)
-              )}
-            </div>
-
-            {items.length > 0 && (
-              <div className="border-t border-ink/10 p-4">
-                <div className="mb-3">
-                  <CouponInput />
-                </div>
-
-                <Input
-                  label="Seu nome"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Como podemos te chamar?"
-                  className="mb-3"
-                />
-
-                <DeliveryAddressInput
-                  address={deliveryAddress}
-                  onAddressChange={setDeliveryAddress}
-                  onLocationCaptured={setMapsLink}
-                />
-
-                <div className="mb-4 space-y-1 text-sm">
-                  <div className="flex justify-between text-ink-muted">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(subtotal)}</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between text-emerald-500">
-                      <span>Desconto</span>
-                      <span>-{formatCurrency(discount)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-ink-muted">
-                    <span>Entrega</span>
-                    <span>{formatCurrency(deliveryFee)}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-dashed border-ink/15 pt-1.5 text-base font-bold text-ink">
-                    <span>Total</span>
-                    <span className="font-mono">{formatCurrency(total)}</span>
-                  </div>
-                </div>
-
-                {tenant.pix_key && <PixCheckout tenant={tenant} amount={total} />}
-
-                <Button
-                  onClick={handleCheckout}
-                  isLoading={submitting}
-                  className="w-full"
-                  size="lg"
-                >
-                  Finalizar pelo WhatsApp
-                </Button>
-
-                {tenant.card_payment_enabled && (
-                  <>
-                    <div className="my-3 flex items-center gap-3 text-xs text-ink-muted">
-                      <div className="h-px flex-1 bg-ink/10" />
-                      ou
-                      <div className="h-px flex-1 bg-ink/10" />
-                    </div>
-                    <Button
-                      onClick={handleCardPayment}
-                      isLoading={cardSubmitting}
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      <CreditCard className="h-4 w-4" /> Pagar com cartão agora
-                    </Button>
-                    {cardError && <p className="mt-1.5 text-xs text-red-500">{cardError}</p>}
-                  </>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4">
+                {items.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-ink-muted">Seu carrinho está vazio.</p>
+                ) : (
+                  items.map((item) => <CartItemRow key={item.cartItemId} item={item} />)
                 )}
               </div>
-            )}
+
+              {items.length > 0 && (
+                <div className="border-t border-ink/10 p-4">
+                  <div className="mb-3">
+                    <CouponInput />
+                  </div>
+
+                  <Input
+                    label="Seu nome"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Como podemos te chamar?"
+                    className="mb-3"
+                  />
+
+                  <DeliveryAddressInput
+                    address={deliveryAddress}
+                    onAddressChange={setDeliveryAddress}
+                    onLocationCaptured={setMapsLink}
+                  />
+
+                  <div className="mb-4 space-y-1 text-sm">
+                    <div className="flex justify-between text-ink-muted">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(subtotal)}</span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-emerald-500">
+                        <span>Desconto</span>
+                        <span>-{formatCurrency(discount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-ink-muted">
+                      <span>Entrega</span>
+                      <span>{formatCurrency(deliveryFee)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-dashed border-ink/15 pt-1.5 text-base font-bold text-ink">
+                      <span>Total</span>
+                      <span className="font-mono">{formatCurrency(total)}</span>
+                    </div>
+                  </div>
+
+                  {tenant.pix_key && <PixCheckout tenant={tenant} amount={total} />}
+
+                  <Button
+                    onClick={handleCheckout}
+                    isLoading={submitting}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Finalizar pelo WhatsApp
+                  </Button>
+
+                  {tenant.card_payment_enabled && (
+                    <>
+                      <div className="my-3 flex items-center gap-3 text-xs text-ink-muted">
+                        <div className="h-px flex-1 bg-ink/10" />
+                        ou
+                        <div className="h-px flex-1 bg-ink/10" />
+                      </div>
+                      <Button
+                        onClick={handleCardPayment}
+                        isLoading={cardSubmitting}
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                      >
+                        <CreditCard className="h-4 w-4" /> Pagar com cartão agora
+                      </Button>
+                      {cardError && <p className="mt-1.5 text-xs text-red-500">{cardError}</p>}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </motion.aside>
         </div>
       )}

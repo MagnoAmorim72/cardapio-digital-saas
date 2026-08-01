@@ -38,6 +38,11 @@ export async function updateOrderStatus(
   if (error) throw error;
 }
 
+export async function deleteOrder(id: string): Promise<void> {
+  const { error } = await supabase.from('orders').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export interface DashboardStats {
   ordersToday: number;
   revenueToday: number;

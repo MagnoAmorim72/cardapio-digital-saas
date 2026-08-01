@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin, MessageCircle, QrCode, CreditCard } from 'lucide-react';
+import { MapPin, MessageCircle, QrCode, CreditCard, Trash2 } from 'lucide-react';
 import { useTenant } from '@/hooks/useTenant';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { DataTable } from '@/components/admin/DataTable';
-import { listOrders, updateOrderStatus } from '@/services/orderService';
+import { listOrders, updateOrderStatus, deleteOrder } from '@/services/orderService';
 import { formatCurrency } from '@/utils/formatCurrency';
 import type { Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types';
 
@@ -73,6 +73,12 @@ export function OrdersPage() {
   // Novos pedidos entram na lista automaticamente, sem F5 (recarrega em
   // segundo plano, sem piscar o spinner de carregamento).
   useRealtimeOrders(tenant?.id, () => reload());
+
+  async function handleDelete(order: Order) {
+    if (!confirm('Excluir este pedido definitivamente? Essa ação não pode ser desfeita.')) return;
+    await deleteOrder(order.id);
+    await reload();
+  }
 
   return (
     <div>
@@ -154,6 +160,20 @@ export function OrdersPage() {
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
+              ),
+            },
+            {
+              header: '',
+              render: (o) => (
+                <div className="flex justify-end px-4">
+                  <button
+                    aria-label="Excluir pedido"
+                    onClick={() => handleDelete(o)}
+                    className="text-ink-muted hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               ),
             },
           ]}
