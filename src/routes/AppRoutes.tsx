@@ -18,6 +18,7 @@ const BannersPage = lazy(() => import('@/pages/admin/BannersPage').then((m) => (
 const CouponsPage = lazy(() => import('@/pages/admin/CouponsPage').then((m) => ({ default: m.CouponsPage })));
 const OrdersPage = lazy(() => import('@/pages/admin/OrdersPage').then((m) => ({ default: m.OrdersPage })));
 const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const PrintStationPage = lazy(() => import('@/pages/admin/PrintStationPage').then((m) => ({ default: m.PrintStationPage })));
 
 function AdminFallback() {
   return (
@@ -110,6 +111,17 @@ export function AppRoutes() {
             }
           />
         </Route>
+
+        {/* Painel de Impressão — tela "de quiosque" própria, sem menu lateral,
+            pensada para ficar aberta o tempo todo numa tela dedicada. */}
+        <Route
+          path="/admin/impressao"
+          element={
+            <Suspense fallback={<AdminFallback />}>
+              <PrintStationPage />
+            </Suspense>
+          }
+        />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

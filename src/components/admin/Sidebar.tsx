@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, UtensilsCrossed, Tags, Ticket, ShoppingCart, Settings, LogOut, Menu, X, Image,
+  LayoutDashboard, UtensilsCrossed, Tags, Ticket, ShoppingCart, Settings, LogOut, Menu, X, Image, Printer,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/cn';
@@ -17,6 +17,20 @@ const NAV_ITEMS = [
   { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingCart },
   { to: '/admin/configuracoes', label: 'Configurações', icon: Settings },
 ];
+
+function PrintStationLink() {
+  return (
+    <Link
+      to="/admin/impressao"
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-muted hover:bg-surface hover:text-ink"
+      title="Abre em uma aba separada — pensada para ficar sempre aberta no balcão/cozinha"
+    >
+      <Printer className="h-4 w-4" /> Painel de Impressão
+    </Link>
+  );
+}
 
 interface NavListProps {
   onNavigate?: () => void;
@@ -81,6 +95,7 @@ export function Sidebar() {
           <p className="text-xs text-ink-muted">Cardápio Digital SaaS</p>
         </div>
         <NavList />
+        <PrintStationLink />
         <button
           onClick={logout}
           className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-muted hover:bg-surface hover:text-red-500"
@@ -126,6 +141,7 @@ export function Sidebar() {
                 </div>
 
                 <NavList onNavigate={() => setMobileOpen(false)} />
+                <PrintStationLink />
 
                 <button
                   onClick={() => {
