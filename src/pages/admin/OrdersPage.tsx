@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MapPin, MessageCircle, QrCode, CreditCard, Trash2 } from 'lucide-react';
+import { MapPin, MessageCircle, QrCode, CreditCard, Trash2, Eye } from 'lucide-react';
 import { useTenant } from '@/hooks/useTenant';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { DataTable } from '@/components/admin/DataTable';
+import { OrderDetailModal } from '@/components/admin/OrderDetailModal';
 import { listOrders, updateOrderStatus, deleteOrder } from '@/services/orderService';
 import { formatCurrency } from '@/utils/formatCurrency';
 import type { Order, OrderStatus, PaymentMethod, PaymentStatus } from '@/types';
@@ -39,7 +40,7 @@ const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   rejected: 'Recusado',
 };
 
-/** O endereço e o link do mapa são salvos juntos em `notes`, separados por " | ". */
+/** O endereço fica salvo em `notes`, junto com o link do mapa, separados por " | ". */
 function parseDeliveryNotes(notes: string | null): { address: string | null; mapsLink: string | null } {
   if (!notes) return { address: null, mapsLink: null };
   const parts = notes.split(' | ').map((p) => p.trim());
@@ -52,6 +53,7 @@ export function OrdersPage() {
   const { tenant } = useTenant();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
   const reload = useCallback(
     async (options?: { showSpinner?: boolean }) => {
@@ -165,7 +167,14 @@ export function OrdersPage() {
             {
               header: '',
               render: (o) => (
-                <div className="flex justify-end px-4">
+                <div className="flex justify-end gap-3 px-4">
+                  <button
+                    aria-label="Ver detalhes do pedido"
+                    onClick={() => setViewingOrder(o)}
+                    className="text-ink-muted hover:text-brand-primary"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
                   <button
                     aria-label="Excluir pedido"
                     onClick={() => handleDelete(o)}
@@ -179,6 +188,8 @@ export function OrdersPage() {
           ]}
         />
       )}
+
+      <OrderDetailModal order={viewingOrder} onClose={() => setViewingOrder(null)} />
     </div>
   );
 }
